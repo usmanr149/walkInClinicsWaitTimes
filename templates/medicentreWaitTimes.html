@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+    <script type="text/javascript">
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    var updateMedicentreWaittimes = function(e) {
+      $.getJSON($SCRIPT_ROOT + '/updateMedicentreWaitTimes', {}, function(data) {
+        var obj = data.result;
+        for (var key in obj){
+            $("#" + key).html(obj[key]);
+        }
+      });
+      return false;
+    };
+
+    var interval = 1000 * 60 * 1;
+    var updates = function(e){
+        updateMedicentreWaittimes();
+    }
+    setInterval(updates, interval);
+    </script>
+   <div>
+      <table style='padding-left: 5px;'>
+        <tbody>
+        <tr>
+        <td style="text-align: center;"  width=60%;><span style="color: #ff0000;">
+        <strong>Medicentre</strong></span></td>
+        <td style="text-align: center;">
+        <span style="color: #ff0000;" width=40%> <strong>Wait Time</strong>
+        </span></td></tr>
+            {% for row in rows %}
+                <tr>
+                            <td>
+                            <div class="radio"><label> <input
+                            name="optradio" type="radio"/>{{row['Name']}}</label></div>
+                            </td>
+                            <td id="{{row['ID']}}">
+                                <div class="radiotext" style="text-align: center;">
+                                <label for="regular">{{row['waitTime']}}</label></div>
+                                <div class="radiotext" style="text-align: center;">(last updated: {{row['lastUpdated']}})</div>
+                            </td>
+                            </tr>
+
+            {% endfor %}
+        </tbody>
+      </table>
+   </div>
+ {% endblock %}

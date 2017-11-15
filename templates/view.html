@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <style>
+            .sidenav {
+                height: 100%;
+                width: 250px;
+                position: fixed;
+                z-index: 1;
+                top: 0;
+                left: 0;
+                background-color: #111;
+                overflow-x: hidden;
+                padding-top: 20px;
+            }
+
+            .sidenav a {
+                padding: 6px 6px 6px 32px;
+                text-decoration: none;
+                font-size: 25px;
+                color: #818181;
+                display: block;
+            }
+
+            .sidenav a:hover {
+                color: #f1f1f1;
+            }
+
+            .sidenav a.active {
+                background-color: #4CAF50; /* Add a green color to the "active/current" link */
+                color: white;
+            }
+
+            .main {
+                margin-left: 250px; /* Same as the width of the sidenav */
+            }
+
+            #loading {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 100;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(192, 192, 192, 0.5);
+                background-image: url("http://i.stack.imgur.com/MnyxU.gif");
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+        </style>
+        <script>
+
+        var api = "{{api}}"
+
+        // Promise
+        var currentPosition = new Promise(
+            function (resolve, reject) {
+                if (window.navigator && window.navigator.geolocation) {
+                    window.navigator.geolocation.getCurrentPosition(showPosition, handleError);
+                } else {
+                    deferred.reject("Browser does not supports HTML5 geolocation");
+                }
+                if (isMomHappy) {
+                    var phone = {
+                        brand: 'Samsung',
+                        color: 'black'
+                    };
+                    resolve(phone); // fulfilled
+                } else {
+                    var reason = new Error('mom is not happy');
+                    reject(reason); // reject
+                }
+
+            }
+        );
+
+        function currentPosition() {
+            deferred = $.Deferred();
+                if (window.navigator && window.navigator.geolocation) {
+                    window.navigator.geolocation.getCurrentPosition(showPosition, handleError);
+                } else {
+                    deferred.reject("Browser does not supports HTML5 geolocation");
+                }
+                return deferred.promise();
+        }
+
+        function showPosition(position) {
+            $('input[name="address"]').attr('value', position.coords.latitude + "," + position.coords.longitude);
+            $('input[name="address"]').attr('readonly', true);
+            deferred.resolve(position.coords.latitude+","+position.coords.longitude);
+        }
+
+        //getLocation is a callback function, any function that calls it should wait for a response
+        function getLocation(callback){
+            //check if the user has added an address
+            show('loading', true);
+            if ($('input[name="address"]').val().length > 0){
+                show('loading', false);
+                callback($('input[name="address"]').val());
+            }
+            else
+            {
+                currentPosition().then(function(data) {
+                    show('loading', false);
+                    callback(data);
+                });
+            }
+        }
+
+        function setMap() {
+            if (typeof $('input[name="optradio"]:checked').val() != 'undefined'){
+                show('loading', true);
+                getLocation(function (result){
+                    console.log("result = " + result);
+                    newSRC(result);
+                    show('loading', false);
+                });
+            }
+            else{
+                //check if the user has selected a clinic, if not then throw an alert.
+                alert("Make a selection or Get a recommendation")
+            }
+        }
+
+        function handleError(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+              //x.innerHTML = "User denied the request for Geolocation.";
+              deferred.resolve(error.message);
+              resolve(phone);
+              alert("Enter your address");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              //x.innerHTML = "Location information is unavailable."
+              alert("Location information is unavailable.")
+              deferred.resolve(error.message);
+              break;
+            case error.TIMEOUT:
+              //x.innerHTML = "The request to get user location timed out."
+              alert("The request to get user location timed out.")
+              deferred.resolve(error.message);
+              break;
+            case error.UNKNOWN_ERROR:
+              //x.innerHTML = "An unknown error occurred."
+              alert("An unknown error occurred.")
+              deferred.resolve(error.message);
+              break;
+        }
+    }
+
+        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        function navbar(optionSelected){
+            var deferred = $.Deferred();
+            var selectedValue = optionSelected;
+            if (selectedValue === 'hospitals'){
+
+                $.getJSON($SCRIPT_ROOT + '/getHospitalWaitTimesHTML', {}, function(data) {
+                    $("#radioButtons").html(data.table);
+                    deferred.resolve(true);
+                });
+            }
+            else if (selectedValue === 'medicentres'){
+
+                $.getJSON($SCRIPT_ROOT + '/medicentreWaitTimesHTML', {}, function(data) {
+                    $("#radioButtons").html(data.table);
+                    deferred.resolve(true);
+                });
+            }
+            else if (selectedValue === 'other'){
+
+                $.getJSON($SCRIPT_ROOT + '/otherWalkInClinicsHTML', {}, function(data) {
+                    $("#radioButtons").html(data.table);
+                    deferred.resolve(true);
+                });
+            }
+            else{
+                deferred.resolve(true);
+            }
+
+            return deferred.promise();
+        }
+
+        function newSRC(origin){
+            if  ($('input[name="moderadio"]:checked').val() === 'CAR'){
+                mode = 'driving';
+            }
+            else if ($('input[name="moderadio"]:checked').val()=== 'WALK'){
+                mode='walking';
+            }
+            else{
+                mode = 'transit';
+            }
+            url = "https://www.google.com/maps/embed/v1/directions" +
+                        "?key=" + encodeURIComponent(api) +
+                        "&origin=" + encodeURIComponent(origin) +
+                        "&destination=" + encodeURIComponent($('input[name="optradio"]:checked').val()) +
+                        "&mode=" + mode +
+                        "&avoid=tolls|highways";
+            console.log($('input[name="optradio"]:checked').val());
+            console.log(url);
+            document.getElementById('iFrame').setAttribute('src', url);
+        }
+
+        function recommend(){
+            getLocation(function (origin_){
+                    show('loading', true);
+                    var getRecommendation = function(e) {
+                      $.getJSON($SCRIPT_ROOT + '/recommendation', {
+                        origin: origin_,
+                        mode: $('input[name="moderadio"]:checked').val()
+                      }, function(data) {
+                        var where = data.where;
+                        var type = data.type;
+                        var time_ = data.bestTime;
+                        var promise = navbar(type);
+                        promise.then(function(result) {
+                            if (type == null){
+                                alert("Please review your address.");
+                                show('loading', false);
+                            } else{
+                                $('label:contains(' + where +')').children()[0].checked = true;
+                                newSRC(origin_);
+                                alert('Recommendation: '     + where + '\nYou will be seen by approximately ' + time_);
+                                $('#recommend').html('<p>Recommendation: ' + where + '<\p><p>You will be seen by approximately ' + time_ + '<\p>');
+                                show('loading', false);
+                            }
+                        });
+                      });
+                      return false;
+                    };
+                    getRecommendation();
+                })
+            }
+
+        $(function() {
+          $(".sidenav a").on("click", function() {
+            $(".sidenav a").removeClass("active");
+            $(this).addClass("active");
+            navbar(this.getAttribute('value'));
+          });
+        });
+
+        function show(id, value) {
+            document.getElementById(id).style.display = value ? 'block' : 'none';
+        }
+
+        </script>
+    </head>
+  <body>
+        <div class="sidenav" name="clinic_options" id="nav_bar">
+          <a href="#" value="hospitals" class="active">Hospitals</a>
+          <a href="#" value="medicentres">Medicentres</a>
+          <a href="#" value="other">Other Walk-in Clinics</a>
+            <a href="#" value="recommendation" onclick="recommend()">Get a Recommendation</a>
+        </div>
+
+    <div class="main">
+
+        <label>Mode of Travel:</label><br>
+          <input type="radio" name="moderadio" value="TRANSIT" checked> Transit
+          <input type="radio" name="moderadio" value="WALK"> Walk
+          <input type="radio" name="moderadio" value="CAR"> Car
+        </form>
+
+        <table width="80%" height="600px">
+        <tbody>
+            <tr>
+                <td width="50%">
+                    <div id="radioButtons" style="border: 1px; height: 100%; overflow: auto;">
+                       {{table|safe}}
+                    </div>
+                </td>
+                <td width="50%" style="text-align: center;">
+                    <iframe id="iFrame" src="https://www.google.com/maps/embed/v1/place?key={{api}}
+                        &amp;q=Edmonton,AB" width="400px" height="400px" align="centre|top">
+                    </iframe>
+                </td>
+            </tr>
+        </tbody>
+        </table>
+  <form>
+    Your location: <input type="text" name="address" placeholder="Enter an address!">
+  </form>
+    <button onclick="setMap()">Get Directions</button>
+        <div id="recommend"></div>
+    </div>
+    <div id="loading"></div>
+  </body>
+</html>

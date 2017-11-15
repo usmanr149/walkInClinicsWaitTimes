@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <style>
+            .sidenav {
+                height: 100%;
+                width: 250px;
+                position: fixed;
+                z-index: 1;
+                top: 0;
+                left: 0;
+                background-color: #111;
+                overflow-x: hidden;
+                padding-top: 20px;
+            }
+
+            .sidenav a {
+                padding: 6px 6px 6px 32px;
+                text-decoration: none;
+                font-size: 25px;
+                color: #818181;
+                display: block;
+            }
+
+            .sidenav a:hover {
+                color: #f1f1f1;
+            }
+
+            .sidenav a.active {
+                background-color: #4CAF50; /* Add a green color to the "active/current" link */
+                color: white;
+            }
+
+            .main {
+                margin-left: 250px; /* Same as the width of the sidenav */
+            }
+        </style>
+    </head>
+  <body>
+        <div class="sidenav" name="clinic_options" id="nav_bar">
+          <a href="{{ url_for('hospitalWaitTimes') }}" value="hospitals">Hospital Emergency</a>
+          <a href="{{ url_for('medicentreWaitTimes') }}" value="medicentres">Medicentre</a>
+          <a href="{{ url_for('otherWalkInClinicsTimes') }}" value="other">Other Walk-in Clinics</a>
+            <a href="{{ url_for('home') }}" value="recommendation" onclick="recommend()">Get a Recommendation</a>
+        </div>
+
+
+
+    <div class="main">
+
+        <label>Mode of Travel:</label><br>
+          <input type="radio" name="moderadio" value="TRANSIT" checked> Transit
+          <input type="radio" name="moderadio" value="WALK"> Walk
+          <input type="radio" name="moderadio" value="CAR"> Car
+        </form>
+
+        <table width="80%" height="600px">
+        <tbody>
+            <tr>
+                <td width="50%">
+                    <div id="radioButtons" style="border: 1px; height: 100%; overflow: auto;">
+                        {% block content %}
+                        {% endblock %}
+                    </div>
+                </td>
+                <td width="50%" style="text-align: center;">
+                    <iframe id="iFrame" src="https://www.google.com/maps/embed/v1/place?key={{api}}
+                        &amp;q=Edmonton,AB" width="400px" height="400px" align="centre|top">
+                    </iframe>
+                </td>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+  </body>
+</html>
