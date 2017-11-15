@@ -50,7 +50,10 @@ def updateMedicentreWaitTimes():
         html[row[0]] = """<div
             class="radiotext" style="text-align: center;">
             <label id="Belmont_time" for="regular">{0}</label></div>
-            <div class="radiotext" style="text-align: center;" > (last updated: {1})</div>""".format(row[1], row[2])
+            <div class="radiotext" style="text-align: center;" > (last updated: {1})</div>""".format(row[1],
+                                                                                                     datetime.datetime.fromtimestamp(
+                                                                                                         row[2]/1000).strftime(
+                                                                                                         '%H:%M %p'))
     return jsonify(result=html)
 
 @app.route('/updateHospitalWaitTimes')
@@ -160,7 +163,7 @@ def getHospitalWaitTimesHTML():
         <td style="text-align: center;"  width=60%;><span style="color: #ff0000;">
         <strong>Hospital</strong></span></td>
         <td style="text-align: center;">
-        <span style="color: #ff0000;" width=40%> <strong><br>Wait Time</br><br id="0">{0}</strong>
+        <span style="color: #ff0000;" width=40%> <strong><br>Wait Time</br><br id="0">Last Updated: {0}</strong>
         </span></td></tr>""".format(rows[-1][1])]
     radioTextRow = """
         <tr>
@@ -206,7 +209,7 @@ def main():
             <td style="text-align: center;"  width=60%;><span style="color: #ff0000;">
             <strong>Hospital</strong></span></td>
             <td style="text-align: center;">
-            <span style="color: #ff0000;" width=40%> <strong><br>Wait Time</br><br id="0">{0}</strong>
+            <span style="color: #ff0000;" width=40%> <strong><br>Wait Time</br><br id="0">Last Updated: {0}</strong>
             </span></td></tr>""".format(rows[-1][1])]
 
     radioTextRow = """
@@ -232,6 +235,13 @@ def main():
 
 @app.route('/medicentreWaitTimesHTML')
 def getMedicentreWaitTimesHTML():
+
+    def updateTime(x):
+        if isinstance(x, int):
+            return datetime.datetime.fromtimestamp(x).strftime('%H:%M %p')
+        else:
+            return x
+
     cur = get_db().cursor()
     cur.execute("""select medicentreWaitTimes.ID, 
         medicentreWaitTimes.waitTime, 
@@ -271,10 +281,10 @@ def getMedicentreWaitTimesHTML():
                             </td>
                             </tr>
         """.format
-    """html = html + [radioTextRow(row[0], row[1], datetime.datetime.fromtimestamp(row[2]).strftime('%H:%M %p'),
-                                row[3], str(row[4])+","+str(row[5])) for row in rows]"""
-    html = html + [radioTextRow(row[0], row[1], row[2],
-                                row[3], str(row[4]) + "," + str(row[5])) for row in rows]
+    html = html + [radioTextRow(row[0], row[1], updateTime(row[2]),
+                                row[3], str(row[4])+","+str(row[5])) for row in rows]
+    """html = html + [radioTextRow(row[0], row[1], row[2],
+                                row[3], str(row[4]) + "," + str(row[5])) for row in rows]"""
 
     html.append("""
         </tbody>
@@ -448,10 +458,13 @@ def getRecommendation(address, mode='TRANSIT'):
             """.format(dow))
         rows_O = cur.fetchall()
         cur.execute("""
-                    SELECT waitTime FROM medicentreWaitTimes;
+                    SELECT waitTime FROM medicentreWaitTimes WHERE waitTime<>"";
                     """)
         rows = cur.fetchall()
-        avgMWaitTime = sum([int(r[0].split(":")[0]) + int(r[0].split(":")[1]) / 60 for r in rows]) / len(rows)
+        if len(rows) > 0:
+            avgMWaitTime = sum([int(r[0].split(":")[0]) + int(r[0].split(":")[1]) / 60 for r in rows]) / len(rows)
+        else:
+            avgMWaitTime = 15/60
         cur.execute("""
             SELECT hospitalNames.Name,
 				hospitalWaitTimes.waitTime,
